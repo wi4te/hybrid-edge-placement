@@ -7,10 +7,10 @@
 [![Python](https://img.shields.io/badge/Python-3.9%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-EE4C2C?style=flat-square&logo=pytorch&logoColor=white)](https://pytorch.org)
 [![License](https://img.shields.io/badge/License-MIT-10B981?style=flat-square)](LICENSE)
-[![Demo](https://img.shields.io/badge/Live%20Demo-GitHub%20Pages-6366F1?style=flat-square&logo=github)](https://w14te.github.io/hybrid-edge-placement/)
+[![Demo](https://img.shields.io/badge/Live%20Demo-GitHub%20Pages-6366F1?style=flat-square&logo=github)](https://wi4te.github.io/hybrid-edge-placement/)
 [![IIEST](https://img.shields.io/badge/IIEST%20Shibpur-Student%20Project-F59E0B?style=flat-square)](https://www.iiests.ac.in/)
 
-### 🌐 [**Interactive Live Demo →**](https://w14te.github.io/hybrid-edge-placement/)
+### 🌐 [**Interactive Live Demo →**](https://wi4te.github.io/hybrid-edge-placement/)
 *Simulate the full system in your browser — no install needed*
 
 </div>
@@ -80,7 +80,7 @@ These are things I added on top of the paper implementations:
 
 ## Live Demo
 
-> **[https://w14te.github.io/hybrid-edge-placement/](https://w14te.github.io/hybrid-edge-placement/)**
+> **[https://wi4te.github.io/hybrid-edge-placement/](https://wi4te.github.io/hybrid-edge-placement/)**
 
 The browser demo re-implements the core placement logic in JavaScript on an HTML5 Canvas. You can:
 
@@ -114,7 +114,7 @@ Running `python hybridplacement.py` on 100 requests (4×5 grid, seed=42):
 ## How to Run
 
 ```bash
-git clone https://github.com/w14te/hybrid-edge-placement.git
+git clone https://github.com/wi4te/hybrid-edge-placement.git
 cd hybrid-edge-placement
 
 pip install -r requirements.txt
