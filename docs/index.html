@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hybrid Edge Placement — Live Demo</title>
+  <meta name="description" content="Interactive demo of a Multi-Algorithm Hybrid Service Placement system for Edge Computing using GA, PSO and Multi-Agent RL with Graph Attention Networks." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #040d1a;
+      --surface: rgba(255,255,255,0.04);
+      --surface-hover: rgba(255,255,255,0.08);
+      --border: rgba(255,255,255,0.10);
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #6366f1;
+      --accent2: #8b5cf6;
+      --green: #10b981;
+      --yellow: #f59e0b;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --orange: #f97316;
+      --purple: #a855f7;
+      --radius: 14px;
+      --glow: 0 0 24px rgba(99,102,241,0.25);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Animated gradient background ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: -1;
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 10%, rgba(99,102,241,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 80% 80%, rgba(139,92,246,0.10) 0%, transparent 55%),
+        radial-gradient(ellipse 50% 40% at 50% 50%, rgba(16,185,129,0.05) 0%, transparent 60%),
+        var(--bg);
+      animation: bgPulse 8s ease-in-out infinite alternate;
+    }
+    @keyframes bgPulse {
+      0%  { opacity: 0.8; }
+      100%{ opacity: 1; }
+    }
+
+    /* ── Header ── */
+    header {
+      text-align: center;
+      padding: 52px 24px 32px;
+    }
+    .badge-row {
+      display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;
+      margin-bottom: 22px;
+    }
+    .badge {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.6px;
+      padding: 4px 12px; border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      text-transform: uppercase;
+    }
+    .badge.indigo { color: #a5b4fc; border-color: rgba(99,102,241,0.4); background: rgba(99,102,241,0.1); }
+    .badge.green  { color: #6ee7b7; border-color: rgba(16,185,129,0.4); background: rgba(16,185,129,0.1); }
+    .badge.purple { color: #c4b5fd; border-color: rgba(168,85,247,0.4); background: rgba(168,85,247,0.1); }
+    .badge.blue   { color: #93c5fd; border-color: rgba(59,130,246,0.4); background: rgba(59,130,246,0.1); }
+
+    h1 {
+      font-size: clamp(1.8rem, 4vw, 3rem);
+      font-weight: 700;
+      background: linear-gradient(135deg, #e0e7ff 0%, #a5b4fc 50%, #c4b5fd 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.15; margin-bottom: 14px;
+    }
+    .subtitle {
+      color: var(--muted); font-size: 1.05rem; max-width: 640px;
+      margin: 0 auto 28px; line-height: 1.6;
+    }
+    .paper-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 0.82rem; color: #a5b4fc;
+      text-decoration: none;
+      border: 1px solid rgba(99,102,241,0.3);
+      background: rgba(99,102,241,0.08);
+      padding: 6px 14px; border-radius: 20px;
+      transition: all 0.2s;
+      margin: 0 4px;
+    }
+    .paper-link:hover { background: rgba(99,102,241,0.18); color: #e0e7ff; }
+
+    /* ── Main layout ── */
+    main {
+      max-width: 1360px; margin: 0 auto;
+      padding: 0 20px 60px;
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      grid-template-rows: auto auto auto;
+      gap: 20px;
+    }
+
+    /* ── Glass cards ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 20px;
+      transition: border-color 0.2s;
+    }
+    .card:hover { border-color: rgba(255,255,255,0.18); }
+    .card-title {
+      font-size: 0.75rem; font-weight: 600; letter-spacing: 1px;
+      text-transform: uppercase; color: var(--muted);
+      margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+    }
+    .card-title .dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      display: inline-block;
+    }
+
+    /* ── Canvas area ── */
+    #canvas-wrap {
+      grid-column: 1;
+      grid-row: 1 / 3;
+    }
+    #simCanvas {
+      width: 100%; border-radius: 10px;
+      display: block;
+      cursor: crosshair;
+    }
+
+    /* ── Controls panel ── */
+    #controls-panel {
+      grid-column: 2;
+      grid-row: 1;
+      display: flex; flex-direction: column; gap: 14px;
+    }
+
+    /* ── Metrics panel ── */
+    #metrics-panel {
+      grid-column: 2;
+      grid-row: 2;
+    }
+
+    /* ── Event log ── */
+    #log-panel {
+      grid-column: 1 / 3;
+      grid-row: 3;
+    }
+
+    /* ── Algo selector ── */
+    .algo-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    }
+    .algo-btn {
+      padding: 10px 6px; border-radius: 10px; border: 1.5px solid var(--border);
+      background: var(--surface); color: var(--text);
+      font-family: 'Inter', sans-serif; font-size: 0.78rem; font-weight: 500;
+      cursor: pointer; transition: all 0.18s; text-align: center; line-height: 1.3;
+    }
+    .algo-btn:hover { background: var(--surface-hover); border-color: rgba(255,255,255,0.22); }
+    .algo-btn.active {
+      background: rgba(99,102,241,0.2);
+      border-color: var(--accent);
+      color: #a5b4fc;
+      box-shadow: var(--glow);
+    }
+    .algo-btn .algo-icon { font-size: 1.3rem; display: block; margin-bottom: 3px; }
+    .algo-btn .algo-name { font-weight: 600; display: block; }
+    .algo-btn .algo-desc { color: var(--muted); font-size: 0.70rem; display: block; }
+
+    /* ── Buttons ── */
+    .btn {
+      width: 100%; padding: 11px; border-radius: 10px;
+      border: 1px solid var(--border);
+      font-family: 'Inter', sans-serif; font-size: 0.85rem; font-weight: 600;
+      cursor: pointer; transition: all 0.18s; letter-spacing: 0.3px;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: white; border-color: transparent;
+    }
+    .btn-primary:hover { opacity: 0.88; transform: translateY(-1px); box-shadow: var(--glow); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    .btn-danger  { background: rgba(239,68,68,0.15); color: #fca5a5; border-color: rgba(239,68,68,0.35); }
+    .btn-danger:hover  { background: rgba(239,68,68,0.28); }
+    .btn-warning { background: rgba(245,158,11,0.15); color: #fcd34d; border-color: rgba(245,158,11,0.35); }
+    .btn-warning:hover { background: rgba(245,158,11,0.28); }
+    .btn-reset   { background: rgba(255,255,255,0.05); color: var(--muted); border-color: var(--border); }
+    .btn-reset:hover   { background: rgba(255,255,255,0.09); color: var(--text); }
+
+    /* ── Sliders ── */
+    .slider-row { display: flex; flex-direction: column; gap: 5px; }
+    .slider-label {
+      display: flex; justify-content: space-between;
+      font-size: 0.78rem; color: var(--muted);
+    }
+    .slider-label span:last-child { color: var(--text); font-weight: 500; font-family: 'JetBrains Mono', monospace; }
+    input[type=range] {
+      width: 100%; accent-color: var(--accent);
+      height: 4px; cursor: pointer;
+    }
+
+    /* ── Metrics ── */
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .metric-box {
+      background: rgba(0,0,0,0.25); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 14px; text-align: center;
+    }
+    .metric-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.45rem; font-weight: 600;
+      line-height: 1.1; margin-bottom: 3px;
+    }
+    .metric-lbl { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.7px; }
+    .metric-val.green  { color: var(--green); }
+    .metric-val.yellow { color: var(--yellow); }
+    .metric-val.red    { color: var(--red); }
+    .metric-val.blue   { color: var(--blue); }
+    .metric-val.purple { color: var(--purple); }
+    .metric-val.white  { color: var(--text); }
+
+    /* Progress bar */
+    .progress-bar-wrap {
+      background: rgba(0,0,0,0.3); border-radius: 6px; height: 7px; margin-top: 12px; overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%; border-radius: 6px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      transition: width 0.3s ease;
+    }
+
+    /* ── Event log ── */
+    #event-log {
+      height: 120px; overflow-y: auto;
+      background: rgba(0,0,0,0.3); border-radius: 8px; padding: 10px 12px;
+      font-family: 'JetBrains Mono', monospace; font-size: 0.72rem;
+      border: 1px solid var(--border);
+      display: flex; flex-direction: column; gap: 3px;
+    }
+    #event-log::-webkit-scrollbar { width: 4px; }
+    #event-log::-webkit-scrollbar-track { background: transparent; }
+    #event-log::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+    .log-entry { display: flex; gap: 10px; align-items: flex-start; }
+    .log-time { color: var(--muted); min-width: 28px; }
+    .log-PLACE  { color: var(--green); }
+    .log-FAIL   { color: var(--red); }
+    .log-FLASH  { color: var(--yellow); }
+    .log-RECOVER{ color: var(--blue); }
+    .log-REJECT { color: var(--orange); }
+
+    /* ── Legend ── */
+    .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
+    .legend-item { display: flex; align-items: center; gap: 5px; font-size: 0.72rem; color: var(--muted); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+
+    /* ── Bar chart ── */
+    #chartCanvas { width: 100%; display: block; border-radius: 8px; }
+
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
+      main { grid-template-columns: 1fr; grid-template-rows: auto; }
+      #canvas-wrap { grid-column: 1; grid-row: 1; }
+      #controls-panel { grid-column: 1; grid-row: 2; }
+      #metrics-panel { grid-column: 1; grid-row: 3; }
+      #log-panel { grid-column: 1; grid-row: 4; }
+    }
+
+    /* ── Tooltip ── */
+    #tooltip {
+      position: fixed; pointer-events: none;
+      background: rgba(10,15,30,0.95); border: 1px solid var(--border);
+      border-radius: 8px; padding: 8px 12px;
+      font-size: 0.75rem; color: var(--text); z-index: 100;
+      backdrop-filter: blur(8px);
+      opacity: 0; transition: opacity 0.15s;
+      font-family: 'JetBrains Mono', monospace;
+      max-width: 180px; line-height: 1.6;
+    }
+    #tooltip.visible { opacity: 1; }
+
+    /* ── Pulse animation for active servers ── */
+    @keyframes serverPulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+
+    /* ── Section divider ── */
+    .section-gap { height: 20px; }
+
+    footer {
+      text-align: center; padding: 32px 24px;
+      color: var(--muted); font-size: 0.8rem;
+      border-top: 1px solid var(--border);
+    }
+    footer a { color: #a5b4fc; text-decoration: none; }
+    footer a:hover { color: #e0e7ff; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="badge-row">
+    <span class="badge indigo">Python · PyTorch</span>
+    <span class="badge green">Multi-Agent RL</span>
+    <span class="badge purple">Graph Attention Network</span>
+    <span class="badge blue">Edge Computing</span>
+    <span class="badge indigo">Live Demo</span>
+  </div>
+  <h1>Hybrid Edge Service Placement</h1>
+  <p class="subtitle">
+    An adaptive multi-algorithm system combining Genetic Algorithms, Particle Swarm Optimization,
+    and Multi-Agent Reinforcement Learning with Graph Attention Networks for dynamic edge computing environments.
+  </p>
+  <div>
+    <a class="paper-link" href="https://github.com" target="_blank">📄 Kazmi et al., 2025</a>
+    <a class="paper-link" href="https://github.com" target="_blank">📄 GAL-VNE KDD'23</a>
+    <a class="paper-link" href="https://github.com" target="_blank">💻 View Source</a>
+  </div>
+</header>
+
+<main>
+
+  <!-- Canvas -->
+  <div class="card" id="canvas-wrap">
+    <div class="card-title"><span class="dot" style="background:var(--green)"></span>Edge Network Simulation</div>
+    <canvas id="simCanvas"></canvas>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div>Low utilization (&lt;40%)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div>Medium (40–75%)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>High (&gt;75%)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#374151;border:1px solid #6b7280"></div>Failed server</div>
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(99,102,241,0.5);border-radius:50%"></div>User request</div>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div id="controls-panel">
+
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:var(--accent)"></span>Algorithm</div>
+      <div class="algo-grid">
+        <button class="algo-btn" id="algo-HYBRID" onclick="setAlgo('HYBRID')">
+          <span class="algo-icon">⚡</span>
+          <span class="algo-name">Hybrid</span>
+          <span class="algo-desc">Adaptive routing</span>
+        </button>
+        <button class="algo-btn" id="algo-GA" onclick="setAlgo('GA')">
+          <span class="algo-icon">🧬</span>
+          <span class="algo-name">GA</span>
+          <span class="algo-desc">Privacy-optimal</span>
+        </button>
+        <button class="algo-btn" id="algo-PSO" onclick="setAlgo('PSO')">
+          <span class="algo-icon">🌊</span>
+          <span class="algo-name">PSO</span>
+          <span class="algo-desc">Latency-optimal</span>
+        </button>
+        <button class="algo-btn" id="algo-MARL" onclick="setAlgo('MARL')">
+          <span class="algo-icon">🤖</span>
+          <span class="algo-name">MARL+GAT</span>
+          <span class="algo-desc">Load-balancing</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:var(--green)"></span>Simulation</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <button class="btn btn-primary" id="runBtn" onclick="runSimulation()">▶ Run Simulation (50 requests)</button>
+        <button class="btn btn-primary" id="stepBtn" onclick="stepOne()" style="background:rgba(99,102,241,0.3);border:1px solid var(--accent)">⊳ Place One Request</button>
+        <button class="btn btn-reset" onclick="resetSim()">↺ Reset Network</button>
+      </div>
+      <div class="progress-bar-wrap" style="margin-top:12px;">
+        <div class="progress-bar-fill" id="progressBar" style="width:0%"></div>
+      </div>
+      <div style="font-size:0.72rem;color:var(--muted);margin-top:5px;text-align:center" id="progressLabel">Ready</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:var(--yellow)"></span>Dynamic Events</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <button class="btn btn-danger" onclick="triggerFailure()">💥 Trigger Server Failure</button>
+        <button class="btn btn-warning" onclick="triggerFlashCrowd()">⚡ Flash Crowd Event</button>
+        <button class="btn" style="background:rgba(16,185,129,0.15);color:#6ee7b7;border-color:rgba(16,185,129,0.35)" onclick="recoverServers()">✅ Recover Failed Servers</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:var(--blue)"></span>Parameters</div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div class="slider-row">
+          <div class="slider-label"><span>Services/App</span><span id="svcVal">4</span></div>
+          <input type="range" min="1" max="8" value="4" id="svcSlider" oninput="document.getElementById('svcVal').textContent=this.value" />
+        </div>
+        <div class="slider-row">
+          <div class="slider-label"><span>CPU req.</span><span id="cpuVal">4</span></div>
+          <input type="range" min="1" max="10" value="4" id="cpuSlider" oninput="document.getElementById('cpuVal').textContent=this.value" />
+        </div>
+        <div class="slider-row">
+          <div class="slider-label"><span>Speed</span><span id="speedVal">Medium</span></div>
+          <input type="range" min="1" max="5" value="3" id="speedSlider" oninput="updateSpeed(this.value)" />
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Metrics -->
+  <div class="card" id="metrics-panel">
+    <div class="card-title"><span class="dot" style="background:var(--purple)"></span>Live Metrics</div>
+    <div class="metric-grid">
+      <div class="metric-box">
+        <div class="metric-val green" id="mAccept">0%</div>
+        <div class="metric-lbl">Accept Rate</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-val blue" id="mRequests">0</div>
+        <div class="metric-lbl">Requests</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-val yellow" id="mLatency">0ms</div>
+        <div class="metric-lbl">Avg Latency</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-val white" id="mServers">0</div>
+        <div class="metric-lbl">Active Servers</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-val purple" id="mEnergy">0W</div>
+        <div class="metric-lbl">Total Energy</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-val red" id="mFailed">0</div>
+        <div class="metric-lbl">Failed Svrs</div>
+      </div>
+    </div>
+    <canvas id="chartCanvas" height="100" style="margin-top:14px;"></canvas>
+  </div>
+
+  <!-- Event log -->
+  <div class="card" id="log-panel">
+    <div class="card-title" style="justify-content:space-between">
+      <span><span class="dot" style="background:var(--blue);display:inline-block;width:7px;height:7px;border-radius:50%"></span>&nbsp;Event Log</span>
+      <button onclick="clearLog()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.72rem;font-family:'Inter',sans-serif">Clear</button>
+    </div>
+    <div id="event-log"></div>
+  </div>
+
+</main>
+
+<!-- How it Works -->
+<section style="max-width:1360px;margin:0 auto;padding:0 20px 60px;">
+  <div class="card">
+    <div class="card-title"><span class="dot" style="background:var(--accent)"></span>How It Works</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;margin-top:6px;">
+      <div style="padding:16px;background:rgba(0,0,0,0.2);border-radius:10px;border:1px solid var(--border)">
+        <div style="font-size:1.8rem;margin-bottom:8px">🧬</div>
+        <div style="font-weight:600;margin-bottom:6px;font-size:0.9rem">Genetic Algorithm</div>
+        <div style="font-size:0.78rem;color:var(--muted);line-height:1.6">Evolves a population of server assignments over 40 generations. Chromosome = list of server IDs per service. Optimizes for <strong style="color:var(--text)">privacy</strong> (minimum data spread).</div>
+      </div>
+      <div style="padding:16px;background:rgba(0,0,0,0.2);border-radius:10px;border:1px solid var(--border)">
+        <div style="font-size:1.8rem;margin-bottom:8px">🌊</div>
+        <div style="font-weight:600;margin-bottom:6px;font-size:0.9rem">Particle Swarm Optimization</div>
+        <div style="font-size:0.78rem;color:var(--muted);line-height:1.6">40 particles explore continuous position space, discretized to server IDs. Cognitive + social forces converge to global best. Optimizes for <strong style="color:var(--text)">latency</strong>.</div>
+      </div>
+      <div style="padding:16px;background:rgba(0,0,0,0.2);border-radius:10px;border:1px solid var(--border)">
+        <div style="font-size:1.8rem;margin-bottom:8px">🤖</div>
+        <div style="font-weight:600;margin-bottom:6px;font-size:0.9rem">Multi-Agent RL + GAT</div>
+        <div style="font-size:0.78rem;color:var(--muted);line-height:1.6">One DQN agent per region. Graph Attention Network encodes server topology. Curriculum learning: 1→8 service complexity. Optimizes for <strong style="color:var(--text)">load balance</strong>.</div>
+      </div>
+      <div style="padding:16px;background:rgba(0,0,0,0.2);border-radius:10px;border:1px solid var(--border)">
+        <div style="font-size:1.8rem;margin-bottom:8px">⚡</div>
+        <div style="font-weight:600;margin-bottom:6px;font-size:0.9rem">Hybrid Engine</div>
+        <div style="font-size:0.78rem;color:var(--muted);line-height:1.6">Routes each request to the best-suited algorithm based on app type, deadline, and current load. Falls back to alternative if primary fails. <strong style="color:var(--text)">Best overall</strong> performance.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div id="tooltip"></div>
+
+<footer>
+  <p>Built with PyTorch · NumPy · Matplotlib &nbsp;|&nbsp;
+  Based on <a href="#">Kazmi et al. (2025)</a> &amp; <a href="#">GAL-VNE (KDD'23)</a> &nbsp;|&nbsp;
+  <a href="#">View Full Source on GitHub</a></p>
+</footer>
+
+<script>
+// ═══════════════════════════════════════════════
+// SIMULATION ENGINE (JavaScript port of Python)
+// ═══════════════════════════════════════════════
+
+const GRID_ROWS = 4, GRID_COLS = 5;
+const AREA_KM = 4.0;
+const NUM_SERVERS = GRID_ROWS * GRID_COLS;
+
+// Speed mapping
+const SPEED_DELAYS = [800, 400, 180, 60, 10];
+let currentDelay = 180;
+function updateSpeed(v) {
+  const labels = ['Very Slow','Slow','Medium','Fast','Instant'];
+  currentDelay = SPEED_DELAYS[v-1];
+  document.getElementById('speedVal').textContent = labels[v-1];
+}
+
+// ── Edge Server Model ──
+class EdgeServer {
+  constructor(id, row, col) {
+    this.id = id; this.row = row; this.col = col;
+    this.x = (col + 0.5) * (AREA_KM / GRID_COLS);
+    this.y = (row + 0.5) * (AREA_KM / GRID_ROWS);
+    this.totalCpu = 20 + Math.random() * 30;
+    this.totalRam = 16 + Math.random() * 48;
+    this.allocCpu = 0; this.allocRam = 0;
+    this.failed = false;
+    this.region = (row < 2 ? 0 : 2) + (col < 3 ? 0 : 1);
+    this.pulseT = 0; // animation timer
+  }
+  get availCpu() { return this.failed ? 0 : this.totalCpu - this.allocCpu; }
+  get availRam() { return this.failed ? 0 : this.totalRam - this.allocRam; }
+  get cpuUtil() { return this.failed ? 0 : this.allocCpu / this.totalCpu; }
+  get ramUtil() { return this.failed ? 0 : this.allocRam / this.totalRam; }
+  get util() { return (this.cpuUtil + this.ramUtil) / 2; }
+  get energy() {
+    if (this.failed) return 0;
+    return 50 + 100 * this.util;
+  }
+  canHost(cpu, ram) {
+    return !this.failed && this.availCpu >= cpu && this.availRam >= ram;
+  }
+  allocate(cpu, ram) { this.allocCpu += cpu; this.allocRam += ram; }
+  release(cpu, ram) {
+    this.allocCpu = Math.max(0, this.allocCpu - cpu);
+    this.allocRam = Math.max(0, this.allocRam - ram);
+  }
+  reset() { this.allocCpu=0; this.allocRam=0; this.failed=false; }
+}
+
+// ── Network ──
+let servers = [];
+function initNetwork() {
+  servers = [];
+  for (let r=0; r<GRID_ROWS; r++)
+    for (let c=0; c<GRID_COLS; c++)
+      servers.push(new EdgeServer(r*GRID_COLS+c, r, c));
+}
+
+function latency(a, b) {
+  const sa = servers[a], sb = servers[b];
+  const d = Math.hypot(sa.x-sb.x, sa.y-sb.y);
+  return 5 + 10*d;
+}
+
+function distToUser(sid, ux, uy) {
+  const s = servers[sid];
+  return Math.hypot(s.x-ux, s.y-uy);
+}
+
+// ── Algorithms ──
+
+// Greedy: nearest feasible server to user
+function greedyPlace(services, ux, uy) {
+  const mapping = {};
+  for (const svc of services) {
+    const feasible = servers.filter(s => s.canHost(svc.cpu, svc.ram)).map(s=>s.id);
+    if (!feasible.length) { mapping[svc.id] = -1; continue; }
+    feasible.sort((a,b)=>distToUser(a,ux,uy)-distToUser(b,ux,uy));
+    mapping[svc.id] = feasible[0];
+  }
+  return mapping;
+}
+
+// PSO-style: minimize latency score
+function psoPlace(services, ux, uy) {
+  const mapping = {};
+  let prevServer = null;
+  for (const svc of services) {
+    const feasible = servers.filter(s => s.canHost(svc.cpu, svc.ram)).map(s=>s.id);
+    if (!feasible.length) { mapping[svc.id] = -1; continue; }
+    // Score: latency to prev + distance to user
+    feasible.sort((a,b) => {
+      const latA = prevServer !== null ? latency(prevServer, a) : 0;
+      const latB = prevServer !== null ? latency(prevServer, b) : 0;
+      const dA = distToUser(a, ux, uy);
+      const dB = distToUser(b, ux, uy);
+      return (0.6*latA + 0.4*dA) - (0.6*latB + 0.4*dB);
+    });
+    mapping[svc.id] = feasible[0];
+    prevServer = feasible[0];
+  }
+  return mapping;
+}
+
+// GA-style: minimize servers used (privacy) with tournament
+function gaPlace(services, ux, uy) {
+  const mapping = {};
+  // Try to reuse servers (fewer unique servers = better privacy)
+  let usedServers = new Set();
+  for (const svc of services) {
+    const feasible = servers.filter(s => s.canHost(svc.cpu, svc.ram)).map(s=>s.id);
+    if (!feasible.length) { mapping[svc.id] = -1; continue; }
+    // Prefer already-used servers
+    const preferred = feasible.filter(id => usedServers.has(id));
+    if (preferred.length) {
+      // Among used, pick lowest util
+      preferred.sort((a,b) => servers[a].util - servers[b].util);
+      mapping[svc.id] = preferred[0];
+    } else {
+      // Pick server closest to user
+      feasible.sort((a,b) => distToUser(a,ux,uy) - distToUser(b,ux,uy));
+      mapping[svc.id] = feasible[0];
+    }
+    usedServers.add(mapping[svc.id]);
+  }
+  return mapping;
+}
+
+// MARL-style: balance load (minimize std dev)
+function marlPlace(services, ux, uy) {
+  const mapping = {};
+  for (const svc of services) {
+    const feasible = servers.filter(s => s.canHost(svc.cpu, svc.ram)).map(s=>s.id);
+    if (!feasible.length) { mapping[svc.id] = -1; continue; }
+    // Pick the server that brings utilizations closest to mean
+    const avgUtil = servers.filter(s=>!s.failed).reduce((a,s)=>a+s.util,0)/servers.filter(s=>!s.failed).length;
+    feasible.sort((a,b) => {
+      const newUA = (servers[a].allocCpu + svc.cpu) / servers[a].totalCpu;
+      const newUB = (servers[b].allocCpu + svc.cpu) / servers[b].totalCpu;
+      return Math.abs(newUA - avgUtil) - Math.abs(newUB - avgUtil);
+    });
+    mapping[svc.id] = feasible[0];
+  }
+  return mapping;
+}
+
+// Hybrid: route based on deadline and load
+function hybridPlace(services, ux, uy, deadline) {
+  const avgUtil = servers.filter(s=>!s.failed).reduce((a,s)=>a+s.util,0)/Math.max(1,servers.filter(s=>!s.failed).length);
+  const numSvc = services.length;
+  let algo;
+  if (avgUtil > 0.75) algo = 'MARL';
+  else if (numSvc <= 2 || deadline < 150) algo = 'PSO';
+  else if (Math.random() < 0.3) algo = 'GA';
+  else algo = 'MARL';
+
+  usedAlgoCounts[algo] = (usedAlgoCounts[algo]||0)+1;
+  if (algo === 'PSO') return { mapping: psoPlace(services, ux, uy), algo };
+  if (algo === 'GA')  return { mapping: gaPlace(services, ux, uy),  algo };
+  return { mapping: marlPlace(services, ux, uy), algo };
+}
+
+// ── Stats ──
+let totalRequests = 0, successCount = 0;
+let totalLatency = 0, latencyCount = 0;
+let usedAlgoCounts = { GA:0, PSO:0, MARL:0 };
+let eventLog = [];
+let particles = []; // animation particles
+
+function getMetrics() {
+  const active = servers.filter(s=>!s.failed).length;
+  const failed  = servers.filter(s=> s.failed).length;
+  const energy  = servers.reduce((a,s)=>a+s.energy,0);
+  const acceptRate = totalRequests ? (successCount/totalRequests*100).toFixed(1)+'%' : '0%';
+  const avgLat = latencyCount ? (totalLatency/latencyCount).toFixed(1)+'ms' : '0ms';
+  return { active, failed, energy, acceptRate, avgLat };
+}
+
+function updateMetrics() {
+  const m = getMetrics();
+  document.getElementById('mAccept').textContent   = m.acceptRate;
+  document.getElementById('mRequests').textContent  = totalRequests;
+  document.getElementById('mLatency').textContent   = m.avgLat;
+  document.getElementById('mServers').textContent   = m.active;
+  document.getElementById('mEnergy').textContent    = m.energy.toFixed(0)+'W';
+  document.getElementById('mFailed').textContent    = m.failed;
+
+  const acc = totalRequests ? successCount/totalRequests : 0;
+  const el = document.getElementById('mAccept');
+  el.className = 'metric-val ' + (acc > 0.8 ? 'green' : acc > 0.5 ? 'yellow' : 'red');
+
+  drawChart();
+}
+
+// ── Placement execution ──
+function placeApp(services, ux, uy, deadline) {
+  let mapping, algoName;
+
+  const currentAlgo = document.querySelector('.algo-btn.active')?.id.replace('algo-','') || 'HYBRID';
+
+  if (currentAlgo === 'GA') { mapping = gaPlace(services, ux, uy); algoName = 'GA'; }
+  else if (currentAlgo === 'PSO') { mapping = psoPlace(services, ux, uy); algoName = 'PSO'; }
+  else if (currentAlgo === 'MARL') { mapping = marlPlace(services, ux, uy); algoName = 'MARL'; }
+  else { const r = hybridPlace(services, ux, uy, deadline); mapping = r.mapping; algoName = 'HYBRID('+r.algo+')'; }
+
+  const feasible = Object.values(mapping).every(id => id !== -1);
+  totalRequests++;
+
+  if (feasible) {
+    successCount++;
+    // Allocate
+    for (const svc of services) {
+      const sid = mapping[svc.id];
+      servers[sid].allocate(svc.cpu, svc.ram);
+      servers[sid].pulseT = 30;
+    }
+    // Compute latency
+    const sids = Object.values(mapping);
+    let lat = 0;
+    for (let i=1; i<sids.length; i++) lat += latency(sids[i-1], sids[i]);
+    totalLatency += lat; latencyCount++;
+
+    addParticle(ux, uy, mapping, services);
+    logEvent('PLACE', `[${algoName}] App placed (${services.length} svcs, lat=${lat.toFixed(0)}ms)`);
+  } else {
+    logEvent('REJECT', `[${algoName}] App rejected — insufficient resources`);
+  }
+
+  updateMetrics();
+  return { feasible, mapping };
+}
+
+// ── Simulation controls ──
+let running = false;
+
+async function runSimulation() {
+  if (running) return;
+  running = true;
+  document.getElementById('runBtn').disabled = true;
+  const N = 50;
+  for (let i=0; i<N; i++) {
+    stepOne();
+    document.getElementById('progressBar').style.width = ((i+1)/N*100)+'%';
+    document.getElementById('progressLabel').textContent = `Request ${i+1} / ${N}`;
+    if (currentDelay > 10) await sleep(currentDelay);
+  }
+  document.getElementById('progressLabel').textContent = 'Complete!';
+  running = false;
+  document.getElementById('runBtn').disabled = false;
+}
+
+function stepOne() {
+  const numSvc = parseInt(document.getElementById('svcSlider').value);
+  const cpuReq = parseInt(document.getElementById('cpuSlider').value);
+  const ux = Math.random() * AREA_KM;
+  const uy = Math.random() * AREA_KM;
+  const deadline = [100, 200, 400, 600][Math.floor(Math.random()*4)];
+  const services = Array.from({length:numSvc},(_,i)=>({
+    id:i, cpu:cpuReq*(0.5+Math.random()), ram:cpuReq*(0.5+Math.random())
+  }));
+  placeApp(services, ux, uy, deadline);
+}
+
+function resetSim() {
+  running = false;
+  servers.forEach(s => s.reset());
+  totalRequests=0; successCount=0; totalLatency=0; latencyCount=0;
+  usedAlgoCounts={GA:0,PSO:0,MARL:0}; particles=[];
+  document.getElementById('progressBar').style.width='0%';
+  document.getElementById('progressLabel').textContent='Ready';
+  document.getElementById('runBtn').disabled=false;
+  updateMetrics();
+  clearLog();
+  logEvent('PLACE','Network reset. Ready for simulation.');
+}
+
+function triggerFailure() {
+  const active = servers.filter(s=>!s.failed);
+  if (!active.length) return;
+  const s = active[Math.floor(Math.random()*active.length)];
+  s.failed = true; s.allocCpu=0; s.allocRam=0;
+  logEvent('FAIL',`Server ${s.id} (Region ${s.region}) FAILED`);
+  updateMetrics();
+}
+
+function triggerFlashCrowd() {
+  logEvent('FLASH','⚡ Flash crowd! Placing 5 heavy requests...');
+  for (let i=0; i<5; i++) {
+    const numSvc = 3 + Math.floor(Math.random()*4);
+    const ux = Math.random()*AREA_KM, uy = Math.random()*AREA_KM;
+    const services = Array.from({length:numSvc},(_,i)=>({
+      id:i, cpu: 5+Math.random()*5, ram: 5+Math.random()*5
+    }));
+    placeApp(services, ux, uy, 200);
+  }
+}
+
+function recoverServers() {
+  let count = 0;
+  servers.forEach(s => { if(s.failed){ s.failed=false; count++; } });
+  if (count) {
+    logEvent('RECOVER',`${count} server(s) recovered`);
+    updateMetrics();
+  }
+}
+
+// ── Event log ──
+function logEvent(type, msg) {
+  eventLog.push({type, msg, t: totalRequests});
+  const log = document.getElementById('event-log');
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  entry.innerHTML = `<span class="log-time">${String(totalRequests).padStart(3,'0')}</span><span class="log-${type}">${msg}</span>`;
+  log.appendChild(entry);
+  log.scrollTop = log.scrollHeight;
+  if (log.children.length > 120) log.removeChild(log.firstChild);
+}
+function clearLog() {
+  document.getElementById('event-log').innerHTML='';
+  eventLog=[];
+}
+
+// ── Canvas Renderer ──
+const canvas = document.getElementById('simCanvas');
+const ctx = canvas.getContext('2d');
+let W, H, cellW, cellH, margin;
+
+function resize() {
+  const wrap = document.getElementById('canvas-wrap');
+  W = wrap.clientWidth - 42;
+  H = Math.min(W * 0.65, 480);
+  canvas.width  = W * devicePixelRatio;
+  canvas.height = H * devicePixelRatio;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+  margin = 24;
+  cellW = (W - margin*2) / GRID_COLS;
+  cellH = (H - margin*2) / GRID_ROWS;
+}
+
+function serverPos(s) {
+  return {
+    x: margin + (s.col + 0.5) * cellW,
+    y: margin + (s.row + 0.5) * cellH
+  };
+}
+
+function utilColor(util, failed) {
+  if (failed) return '#1f2937';
+  if (util < 0.4) return `hsl(${160-util*40},70%,42%)`;
+  if (util < 0.75) return `hsl(${45-util*20},85%,52%)`;
+  return `hsl(${10-util*5},80%,${55-util*10}%)`;
+}
+
+function draw(ts) {
+  ctx.clearRect(0,0,W,H);
+
+  // Grid lines
+  ctx.strokeStyle='rgba(255,255,255,0.04)';
+  ctx.lineWidth=1;
+  for(let c=0;c<=GRID_COLS;c++){
+    const x=margin+c*cellW;
+    ctx.beginPath();ctx.moveTo(x,margin);ctx.lineTo(x,H-margin);ctx.stroke();
+  }
+  for(let r=0;r<=GRID_ROWS;r++){
+    const y=margin+r*cellH;
+    ctx.beginPath();ctx.moveTo(margin,y);ctx.lineTo(W-margin,y);ctx.stroke();
+  }
+
+  // Connection lines between neighbour servers (faint)
+  for(let s of servers){
+    if(s.failed) continue;
+    for(let t of servers){
+      if(t.id<=s.id||t.failed) continue;
+      const d=Math.hypot(s.x-t.x,s.y-t.y);
+      if(d<1.5){
+        const p1=serverPos(s),p2=serverPos(t);
+        ctx.strokeStyle='rgba(99,102,241,0.09)';
+        ctx.lineWidth=1.5;
+        ctx.beginPath();ctx.moveTo(p1.x,p1.y);ctx.lineTo(p2.x,p2.y);ctx.stroke();
+      }
+    }
+  }
+
+  // Particles
+  particles = particles.filter(p=>p.life>0);
+  for(const p of particles) {
+    p.life -= 1;
+    p.x += p.vx; p.y += p.vy;
+    p.vy -= 0.08;
+    const alpha = p.life/p.maxLife;
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,p.r*alpha,0,Math.PI*2);
+    ctx.fillStyle=`rgba(${p.color},${alpha*0.8})`;
+    ctx.fill();
+  }
+
+  // Servers
+  for(const s of servers){
+    const {x,y}=serverPos(s);
+    const r = Math.min(cellW,cellH)*0.32;
+    const col = utilColor(s.util, s.failed);
+
+    // Pulse ring
+    if(s.pulseT > 0){
+      s.pulseT--;
+      const pr = r + (30-s.pulseT)*0.7;
+      ctx.beginPath(); ctx.arc(x,y,pr,0,Math.PI*2);
+      ctx.strokeStyle=`rgba(99,102,241,${s.pulseT/30*0.5})`;
+      ctx.lineWidth=2; ctx.stroke();
+    }
+
+    // Shadow
+    ctx.shadowBlur = s.failed ? 0 : 10;
+    ctx.shadowColor = s.failed ? 'transparent' : col;
+
+    // Main circle
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+    const grad = ctx.createRadialGradient(x-r*0.3,y-r*0.3,0,x,y,r);
+    grad.addColorStop(0, s.failed?'#374151':lighten(col,20));
+    grad.addColorStop(1, s.failed?'#1f2937':col);
+    ctx.fillStyle = grad; ctx.fill();
+    ctx.shadowBlur=0;
+
+    // Border
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+    ctx.strokeStyle = s.failed?'#4b5563':'rgba(255,255,255,0.20)';
+    ctx.lineWidth=1.5; ctx.stroke();
+
+    // Utilization arc
+    if(!s.failed && s.util>0){
+      ctx.beginPath();
+      ctx.arc(x,y,r-3,-Math.PI/2,-Math.PI/2+s.util*2*Math.PI);
+      ctx.strokeStyle='rgba(255,255,255,0.5)';
+      ctx.lineWidth=2.5; ctx.stroke();
+    }
+
+    // Server ID
+    ctx.fillStyle = s.failed?'#6b7280':'rgba(255,255,255,0.9)';
+    ctx.font=`600 ${Math.max(9,r*0.42)}px 'JetBrains Mono'`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(s.id, x, y);
+
+    // Failed X
+    if(s.failed){
+      ctx.strokeStyle='#ef4444'; ctx.lineWidth=2.5;
+      const d=r*0.35;
+      ctx.beginPath();ctx.moveTo(x-d,y-d);ctx.lineTo(x+d,y+d);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(x+d,y-d);ctx.lineTo(x-d,y+d);ctx.stroke();
+    }
+  }
+
+  requestAnimationFrame(draw);
+}
+
+function lighten(hex,amt){
+  // Simple hex lighten — just return a slightly brighter rgba
+  return hex; // canvas gradient handles it
+}
+
+function addParticle(ux, uy, mapping, services) {
+  // Convert user coordinates to canvas coords
+  const cx = margin + (ux/AREA_KM)*(W-margin*2);
+  const cy = margin + (uy/AREA_KM)*(H-margin*2);
+
+  // Burst from user position
+  for(let i=0;i<8;i++){
+    const angle = (i/8)*Math.PI*2;
+    particles.push({
+      x:cx,y:cy,
+      vx:Math.cos(angle)*1.5,vy:Math.sin(angle)*1.5-0.5,
+      r:3.5, life:40, maxLife:40,
+      color:'99,102,241'
+    });
+  }
+
+  // Lines from user to each placed server (drawn as particles)
+  for(const svc of services){
+    const sid = mapping[svc.id];
+    if(sid<0) continue;
+    const sp = serverPos(servers[sid]);
+    // Particle trail
+    const steps = 8;
+    for(let i=0;i<steps;i++){
+      particles.push({
+        x: cx+(sp.x-cx)*(i/steps),
+        y: cy+(sp.y-cy)*(i/steps),
+        vx:0, vy:0,
+        r:2, life:25+i*2, maxLife:45,
+        color:'139,92,246'
+      });
+    }
+  }
+}
+
+// ── Chart (mini bar chart of algo distribution) ──
+function drawChart() {
+  const c = document.getElementById('chartCanvas');
+  const cw = c.parentElement.clientWidth - 42;
+  c.width  = cw * devicePixelRatio;
+  c.height = 100 * devicePixelRatio;
+  c.style.width = cw+'px'; c.style.height='100px';
+  const cx = c.getContext('2d');
+  cx.scale(devicePixelRatio,devicePixelRatio);
+
+  const algos = ['GA','PSO','MARL'];
+  const cols = ['#3b82f6','#f97316','#ef4444'];
+  const total = algos.reduce((a,k)=>a+(usedAlgoCounts[k]||0),0) || 1;
+  const barW = (cw/algos.length)*0.55;
+  const gap  = (cw/algos.length);
+
+  cx.clearRect(0,0,cw,100);
+  cx.fillStyle='rgba(255,255,255,0.04)';
+  cx.roundRect(0,0,cw,100,8); cx.fill();
+
+  algos.forEach((a,i)=>{
+    const count = usedAlgoCounts[a]||0;
+    const frac  = count/total;
+    const bh    = frac * 60;
+    const bx    = i*gap + gap/2 - barW/2;
+    const by    = 75 - bh;
+
+    // Bar
+    const grad = cx.createLinearGradient(0,by,0,by+bh);
+    grad.addColorStop(0,cols[i]+'cc');
+    grad.addColorStop(1,cols[i]+'44');
+    cx.fillStyle=grad;
+    cx.beginPath();
+    if(cx.roundRect) cx.roundRect(bx,by,barW,bh,4);
+    else cx.rect(bx,by,barW,bh);
+    cx.fill();
+
+    // Label
+    cx.fillStyle='rgba(255,255,255,0.7)';
+    cx.font=`600 10px 'Inter'`;
+    cx.textAlign='center';
+    cx.fillText(a, bx+barW/2, 90);
+
+    // Count
+    cx.fillStyle='rgba(255,255,255,0.5)';
+    cx.font=`500 9px 'JetBrains Mono'`;
+    cx.fillText(count, bx+barW/2, by-4);
+  });
+
+  cx.fillStyle='rgba(255,255,255,0.3)';
+  cx.font=`500 9px 'Inter'`;
+  cx.textAlign='left';
+  cx.fillText('Hybrid routing distribution',6,11);
+}
+
+// ── Tooltip on hover ──
+const tooltip = document.getElementById('tooltip');
+canvas.addEventListener('mousemove', e=>{
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  let found = null;
+  for(const s of servers){
+    const p = serverPos(s);
+    const r = Math.min(cellW,cellH)*0.32;
+    if(Math.hypot(mx-p.x,my-p.y)<r){ found=s; break; }
+  }
+  if(found){
+    tooltip.innerHTML = `<strong>Server ${found.id}</strong> (R${found.region})<br>CPU: ${found.allocCpu.toFixed(1)}/${found.totalCpu.toFixed(1)} (${(found.cpuUtil*100).toFixed(0)}%)<br>RAM: ${found.allocRam.toFixed(1)}/${found.totalRam.toFixed(1)} (${(found.ramUtil*100).toFixed(0)}%)<br>Energy: ${found.energy.toFixed(0)}W<br>${found.failed?'❌ FAILED':'✅ Online'}`;
+    tooltip.style.left=(e.clientX+14)+'px';
+    tooltip.style.top =(e.clientY-10)+'px';
+    tooltip.classList.add('visible');
+  } else {
+    tooltip.classList.remove('visible');
+  }
+});
+canvas.addEventListener('mouseleave',()=>tooltip.classList.remove('visible'));
+
+// Click server to toggle failure
+canvas.addEventListener('click', e=>{
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  for(const s of servers){
+    const p = serverPos(s);
+    const r = Math.min(cellW,cellH)*0.32;
+    if(Math.hypot(mx-p.x,my-p.y)<r){
+      s.failed = !s.failed;
+      if(s.failed){s.allocCpu=0;s.allocRam=0;logEvent('FAIL',`Server ${s.id} manually failed`);}
+      else logEvent('RECOVER',`Server ${s.id} manually recovered`);
+      updateMetrics();
+      break;
+    }
+  }
+});
+
+// ── Algo selector ──
+function setAlgo(name) {
+  document.querySelectorAll('.algo-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('algo-'+name).classList.add('active');
+}
+
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+// ── Init ──
+window.addEventListener('resize',()=>{ resize(); });
+initNetwork();
+resize();
+setAlgo('HYBRID');
+updateMetrics();
+logEvent('PLACE','🚀 Simulation ready. Click ▶ Run or ⊳ Step to begin.');
+logEvent('PLACE','💡 Tip: Click any server to toggle failure state.');
+requestAnimationFrame(draw);
+</script>
+</body>
+</html>
